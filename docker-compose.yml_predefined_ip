@@ -1,0 +1,64 @@
+version: '3.2'
+
+services:
+    sessions:
+        image: redis:4
+        ports: 
+            - 6379:6379
+        networks:
+           web:
+               ipv4_address: 172.10.0.10
+               ipv6_address: 2002:ac0a:0000::10
+               aliases:
+                   - redis
+    cowsay-service:
+        image: spsarolkar/cowsay 
+        ports:
+                - 8000
+        environment:
+            - SERVICE_PORTS=8000
+        deploy:
+            replicas: 5
+            restart_policy:
+                condition: on-failure
+                max_attempts: 3
+                window: 120s
+        networks:
+                web:
+                    ipv4_address: 172.10.0.9
+                    ipv6_address: 2002:ac0a:0000::9
+ 
+
+    cowsay-proxy:
+        image: dockercloud/haproxy
+        depends_on:
+            - cowsay-service
+        environment: 
+            - BALANCE=leastconn
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        ports:
+                - "8000:80"
+        networks:
+            web:
+               ipv4_address: 172.10.0.8
+               ipv6_address: 2002:ac0a:0000::8
+               aliases:
+                    - cowsay
+
+    cowsay-ui:
+        image: spsarolkar/cowsay-ui
+        ports:
+                - "[::1]:8080:8080"
+        depends_on:
+            - redis 
+            - cowsay
+        networks:
+            web:
+               ipv4_address: 172.10.0.7
+               ipv6_address: 2002:ac0a:0000::7
+
+networks:
+        web:
+                external:
+                        name: ipv6_overlay

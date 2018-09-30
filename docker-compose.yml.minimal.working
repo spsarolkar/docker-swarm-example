@@ -1,0 +1,41 @@
+version: '3.2'
+
+services:
+    sessions:
+        image: redis:4
+        ports: 
+            - 6379:6379
+        networks:
+           web:
+               aliases:
+                   - redis
+
+    cowsay-service:
+        image: spsarolkar/cowsay 
+        ports:
+                - 8000
+        environment:
+            - SERVICE_PORTS=8000
+        networks:
+                web:
+                   aliases:
+                        - cowsay
+ 
+    cowsay-ui:
+        image: spsarolkar/cowsay-ui
+        ports:
+                - "8080:8080"
+        environment:
+             - COWSAY_SERVER_NAME=cowsay
+             - COWSAY_SERVER_PORT=8000
+             - REDIS_SERVER_NAME=redis
+             - REDIS_SERVER_PORT=6379
+        depends_on:
+            - redis 
+            - cowsay
+        networks:
+            web:
+
+networks:
+        web:
+           driver: overlay
